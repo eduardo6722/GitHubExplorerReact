@@ -18,6 +18,8 @@ npm start
 
 Go to [app](http://localhost:3000)
 
+Demo: [Awesome GitHub Explorer](https://awesome-github-explorer.netlify.app/)
+
 ## Screenshots
 
 **Dashboard**
