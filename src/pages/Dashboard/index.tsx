@@ -1,13 +1,13 @@
 import React from 'react';
-import { FiChevronsRight } from 'react-icons/fi';
+import { Link } from 'react-router-dom';
+import { FiChevronRight } from 'react-icons/fi';
 
 import api from '../../services/api';
 import logo from '../../assets/logo.svg';
-import { Title, Form, Repositories } from './styled';
+import { Title, Form, Repositories, Error } from './styled';
 
 interface Repository {
   full_name: string;
-  html_url: string;
   description: string;
   owner: {
     avatar_url: string;
@@ -15,17 +15,40 @@ interface Repository {
 }
 
 const Dashboard: React.FC = () => {
-  const [repositories, setRepositories] = React.useState<Repository[]>([]);
+  const [repositories, setRepositories] = React.useState<Repository[]>(() => {
+    const repos = localStorage.getItem('@github-explorer:repositories');
+    if (repos) {
+      return JSON.parse(repos);
+    }
+    return [];
+  });
+  const [inputError, setInputError] = React.useState('');
   const [newRepo, setNewRepo] = React.useState('');
+
+  React.useEffect(() => {
+    localStorage.setItem(
+      '@github-explorer:repositories',
+      JSON.stringify(repositories),
+    );
+  }, [repositories]);
 
   async function handleAddRepository(e: React.FormEvent): Promise<void> {
     e.preventDefault();
-    setNewRepo('');
 
-    const response = await api.get<Repository>(`repos/${newRepo}`);
-    const repository = response.data;
+    if (!newRepo) {
+      setInputError('Digite autor/nome_do_repositório');
+    } else {
+      setNewRepo('');
+      setInputError('');
+      try {
+        const response = await api.get<Repository>(`repos/${newRepo}`);
+        const repository = response.data;
 
-    setRepositories([...repositories, repository]);
+        setRepositories([...repositories, repository]);
+      } catch (error) {
+        setInputError('Erro na busca do repositório');
+      }
+    }
   }
 
   return (
@@ -33,7 +56,7 @@ const Dashboard: React.FC = () => {
       <img src={logo} alt="logo" />
       <Title>Explore repositórios no Github</Title>
 
-      <Form onSubmit={handleAddRepository}>
+      <Form hasError={!!inputError} onSubmit={handleAddRepository}>
         <input
           placeholder="Digite um repositório"
           value={newRepo}
@@ -41,13 +64,12 @@ const Dashboard: React.FC = () => {
         />
         <button type="submit">Pesquisar</button>
       </Form>
-
+      {inputError && <Error>{inputError}</Error>}
       <Repositories>
         {repositories.map(item => (
-          <a
+          <Link
             key={item.full_name}
-            href={item.html_url}
-            target="_blank"
+            to={`repository/${item.full_name}`}
             rel="noopener noreferrer"
           >
             <img src={item.owner.avatar_url} alt="avatar" />
@@ -56,8 +78,8 @@ const Dashboard: React.FC = () => {
               <p>{item.description}</p>
             </div>
 
-            <FiChevronsRight size={20} />
-          </a>
+            <FiChevronRight size={20} />
+          </Link>
         ))}
       </Repositories>
     </>
